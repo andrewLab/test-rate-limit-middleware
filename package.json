@@ -18,7 +18,8 @@
   "dependencies": {
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
-    "express-request-context": "^1.0.1"
+    "express-request-context": "^1.0.1",
+    "ioredis": "^5.2.4"
   },
   "devDependencies": {
     "@types/express": "^4.17.14",

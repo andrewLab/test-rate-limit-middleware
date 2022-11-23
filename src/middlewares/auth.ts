@@ -31,7 +31,8 @@ const authMiddleware =
       return buildUnauthorizedResponse(res);
     }
 
-    req.context.isAuthorized = true;
+    req.context.isPrivateAction = true;
+    req.context.token = token;
 
     return next();
   };

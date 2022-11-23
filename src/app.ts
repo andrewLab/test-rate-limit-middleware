@@ -3,6 +3,7 @@ import expressContext from "express-request-context";
 import config from "./config";
 import controller from "./controller";
 import authMiddleware from "./middlewares/auth";
+import rateLimiterMiddleware from "./middlewares/rateLimiter";
 
 const app: Express = express();
 
@@ -10,6 +11,15 @@ app.use(expressContext());
 app.use(
   authMiddleware({
     publicRoutes: ["/"],
+  })
+);
+
+app.get("/reset", controller.resetRateLimitAction);
+
+app.use(
+  rateLimiterMiddleware({
+    maxByToken: config.rateLimiter.maxByToken,
+    maxByIp: config.rateLimiter.maxByIp,
   })
 );
 

@@ -3,11 +3,11 @@
 ## Goals
 - [X] Implement a basic auth middleware. It could be just an uuid token passed in headers, or it could be a jwt. No need to implement login/register routes. You can just store the token somewhere (env, app, db).
 - [X] Implement 2 types of routes: public and private. Private routes should use the auth middleware.
-- [ ] Implement a rate limiter. It should check a token limit for private routes and a ip limit for public routes.
-- [ ] Set a rate limit by token to 200 req/hour
-- [ ] Set a rate limit by ip to 100 req/hour 
-- [ ] Those numbers (token limit and ip limit) should be configurable from the environment
-- [ ] When a user reaches the limit, in the response show an error message about current limit for that user account, and display when (time) the user can make the next request
+- [x] Implement a rate limiter. It should check a token limit for private routes and a ip limit for public routes.
+- [x] Set a rate limit by token to 200 req/hour
+- [x] Set a rate limit by ip to 100 req/hour 
+- [x] Those numbers (token limit and ip limit) should be configurable from the environment
+- [x] When a user reaches the limit, in the response show an error message about current limit for that user account, and display when (time) the user can make the next request
 - [ ] Keep concurrency in mind.
 Your solution should handle multiple requests at the same time,
 for example, let's say you have 4000 requests per second to public route from the same user, so your solution should respond with 429 status code when the rate limit is reached.
@@ -22,8 +22,15 @@ Allowed stack includes:
 Feel free to use additional services, except ready limiter libraries.
 
 ## Implementation
-Disclamer:
+### Disclamer:
 > I strongly believe that application request throttling falls under load balancing responsibility of a dedicated network infrastracture services (AWS ELB, NGINX as LB, F5). The implementation on application level will refer to algorythms used by the services
+
+###Assumptions
+- Given the rate limit window measured in hours, the goal of rate limiting is to hard limit user access to application rather that smother and distribute traffic (as traffic distribution strategies are usually applied within shorter timespan - minutes, seconds, ms) to control for traffic burst. Thus, no traffic distribution strategies will be applied and a user will be hard limited up until the limit period expires
+
+###Solution
+Given the conditions above, the proposed approach is "Token Bucket" strategy as most efficient in terms of persistance efficiency and computational complexity.
+
 
 ## Installation
 
