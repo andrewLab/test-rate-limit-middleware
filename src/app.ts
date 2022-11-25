@@ -1,5 +1,4 @@
 import express, { Express, RequestHandler } from "express";
-import expressContext from "express-request-context";
 import config from "./config";
 import controller from "./controller";
 import authMiddleware from "./middlewares/auth";
@@ -41,7 +40,6 @@ const routes: RouteDefinition[] = [
   },
 ];
 
-app.use(expressContext());
 app.use(
   authMiddleware({
     publicRoutes: routes
@@ -54,7 +52,7 @@ app.use(
   rateLimiterMiddleware({
     maxByToken: config.rateLimiter.maxByToken,
     maxByIp: config.rateLimiter.maxByIp,
-    routeWeights: routes.map(({ handler, ...routeData}) => routeData)
+    routes: routes.map(({ handler, ...routeData}) => routeData)
   })
 );
 

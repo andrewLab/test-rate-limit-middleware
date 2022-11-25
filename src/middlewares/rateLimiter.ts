@@ -1,16 +1,16 @@
 import {Request, Response, NextFunction } from "express";
 import redisClient from "../redisClient";
+import config from "../config";
 
-type RouteWeightDefinition = {
+type RouteDefinition = {
     path: string;
     private?: boolean;
     weight?: number;
 };
-
 type RateLimiterOptions = {
   maxByToken: number;
   maxByIp: number;
-  routeWeights?: RouteWeightDefinition[]
+  routes?: RouteDefinition[]
 };
 
 const RATE_LIMIT_WINDOW = 60 * 60; // 1 hour
@@ -18,9 +18,9 @@ const RATE_LIMIT_WINDOW = 60 * 60; // 1 hour
 const rateLimiterMiddleware =
   (options: RateLimiterOptions) =>
   async (req: Request, res: Response, next: NextFunction) => {
-    const { isPrivateAction } = req.context;
+    const isPrivateAction = options.routes?.find((r) => r.path === req.path)?.private ?? false
 
-    const recordKey = isPrivateAction ? req.context.token : req.ip;
+    const recordKey = isPrivateAction ? config.app.authToken : req.ip;
     const limit = isPrivateAction ? options.maxByToken : options.maxByIp;
 
     const record = await redisClient.getNumberWithTTL(recordKey);
@@ -36,13 +36,13 @@ const rateLimiterMiddleware =
         .json(`Too Many Requests. Rate limit will reset in ${ttl} seconds`);
     }
 
-    const { routeWeights } = options;
-    if (!routeWeights) {
+    const { routes } = options;
+    if (!routes) {
         await redisClient.decr(recordKey);
         return next();
     }
 
-    const requestWeight = routeWeights.find((rw) => req.path === rw.path)?.weight ?? 1
+    const requestWeight = routes.find((rw) => req.path === rw.path)?.weight ?? 1
     await redisClient.decrby(recordKey, requestWeight)
     return next()
   };
