@@ -38,7 +38,3 @@ scenarios:
           url: "/private"
           headers:
             Authorization: Bearer secret
-after:
-  flow:
-    - get:
-        url: "/reset"

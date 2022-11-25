@@ -5,8 +5,19 @@ type AuthMiddlewareOptions = {
   publicRoutes: string[];
 };
 
-const buildUnauthorizedResponse = (res: Response) =>
-  res.status(401).json("Unauthorized");
+export const getRequestToken = (req: Request): string | null => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return null
+    }
+
+    const [scheme, token] = authHeader.split(" ");
+    if (!/^Bearer$/i.test(scheme)) {
+        return null
+    }
+
+    return token
+}
 
 const authMiddleware =
   (options: AuthMiddlewareOptions) =>
@@ -17,18 +28,9 @@ const authMiddleware =
       return next();
     }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return buildUnauthorizedResponse(res);
-    }
-
-    const [scheme, token] = authHeader.split(" ");
-    if (!/^Bearer$/i.test(scheme)) {
-      return buildUnauthorizedResponse(res);
-    }
-
-    if (config.app.authToken !== token) {
-      return buildUnauthorizedResponse(res);
+    const token = getRequestToken(req);
+    if (!token || config.app.authToken !== token) {
+        return res.status(401).json("Unauthorized");
     }
 
     return next();
