@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import config from "../config";
-import Redis from "ioredis";
+import redisClient from "../redisClient";
 
 type RateLimiterOptions = {
   maxByToken: number;
@@ -8,8 +7,6 @@ type RateLimiterOptions = {
 };
 
 const RATE_LIMIT_WINDOW = 60 * 60; // 1 hour
-
-const redis = new Redis(config.redis.port, config.redis.host);
 
 const rateLimiterMiddleware =
   (options: RateLimiterOptions) =>
@@ -19,21 +16,20 @@ const rateLimiterMiddleware =
     const recordKey = isPrivateAction ? req.context.token : req.ip;
     const limit = isPrivateAction ? options.maxByToken : options.maxByIp;
 
-    const record = await redis.get(recordKey);
-    if (!record) {
-      await redis.set(recordKey, limit, "EX", RATE_LIMIT_WINDOW);
+    const record = await redisClient.getNumberWithTTL(recordKey);
+    if (!record.length) {
+      await redisClient.set(recordKey, limit - 1, "EX", RATE_LIMIT_WINDOW);
       return next();
     }
 
-    const currentLimit = parseInt(record);
-    if (currentLimit <= 1) {
-      const ttl = await redis.ttl(recordKey);
+    const [value, ttl] = record;
+    if (value <= 1) {
       return res
         .status(429)
         .json(`Too Many Requests. Rate limit will reset in ${ttl} seconds`);
     }
 
-    await redis.decr(recordKey);
+    await redisClient.decr(recordKey);
     return next();
   };
 

@@ -1,20 +1,54 @@
-import express, { Express } from "express";
+import express, { Express, RequestHandler } from "express";
 import expressContext from "express-request-context";
 import config from "./config";
 import controller from "./controller";
 import authMiddleware from "./middlewares/auth";
 import rateLimiterMiddleware from "./middlewares/rateLimiter";
+import redisClient from "./redisClient";
 
 const app: Express = express();
+
+type RouteDefinition = {
+  path: string;
+  handler: RequestHandler;
+  private?: boolean;
+  weight?: number;
+};
+
+const routes: RouteDefinition[] = [
+  {
+    path: "/",
+    handler: controller.indexAction,
+  },
+  {
+    path: "/weight2",
+    handler: controller.indexAction,
+    weight: 2,
+  },
+  {
+    path: "/weight5",
+    handler: controller.indexAction,
+    weight: 5,
+  },
+  {
+    path: "/reset",
+    handler: controller.resetRateLimitAction,
+  },
+  {
+    path: "/private",
+    handler: controller.privateAction,
+    private: true,
+  },
+];
 
 app.use(expressContext());
 app.use(
   authMiddleware({
-    publicRoutes: ["/"],
+    publicRoutes: routes
+      .filter((route) => !route.private)
+      .map((route) => route.path),
   })
 );
-
-app.get("/reset", controller.resetRateLimitAction);
 
 app.use(
   rateLimiterMiddleware({
@@ -23,9 +57,20 @@ app.use(
   })
 );
 
-app.get("/", controller.indexAction);
-app.get("/private", controller.privateAction);
+routes.forEach((route) => {
+  app.get(route.path, route.handler);
+});
 
-app.listen(config.app.port, () => {
+const server = app.listen(config.app.port, () => {
   console.log(`App is running at http://localhost:${config.app.port}`);
+});
+
+process.on("SIGTERM", () => {
+  console.info("SIGTERM signal received.");
+  console.log("Closing http server.");
+  redisClient.quit();
+  server.close(() => {
+    console.log("Http server closed.");
+    process.exit(0);
+  });
 });

@@ -9,7 +9,7 @@ const privateAction = async (req: Request, res: Response) =>
 
 const resetRateLimitAction = async (req: Request, res: Response) => {
   const redis = new Redis(config.redis.port, config.redis.host);
-  redis.flushall();
+  await redis.flushall("SYNC");
   res.status(200).json("DONE");
 };
 

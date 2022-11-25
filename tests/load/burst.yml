@@ -1,0 +1,34 @@
+config:
+  target: http://localhost:3000
+  plugins:
+    ensure: {}
+    metrics-by-endpoint: {}
+  phases:
+    - name: Concurrent burst test
+      duration: 5
+      arrivalRate: 4000
+  ensure:
+    thresholds:
+      - "http.codes.200": 301 # Assume 100 Public and 200 Private threshold
+
+before:
+  flow:
+    - get:
+        url: "/reset"
+
+scenarios:
+  - name: Public endpoint
+    flow:
+      - get:
+          url: "/"
+
+  - name: Private endpoint
+    flow:
+      - get:
+          url: "/private"
+          headers:
+            Authorization: Bearer secret
+after:
+  flow:
+    - get:
+        url: "/reset"
