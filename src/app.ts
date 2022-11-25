@@ -54,6 +54,7 @@ app.use(
   rateLimiterMiddleware({
     maxByToken: config.rateLimiter.maxByToken,
     maxByIp: config.rateLimiter.maxByIp,
+    routeWeights: routes.map(({ handler, ...routeData}) => routeData)
   })
 );
 

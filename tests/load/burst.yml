@@ -22,6 +22,16 @@ scenarios:
       - get:
           url: "/"
 
+  - name: Weight 2 endpoint
+    flow:
+      - get:
+          url: "/weight2"
+
+  - name: Weight 5 endpoint
+    flow:
+      - get:
+          url: "/weight5"
+
   - name: Private endpoint
     flow:
       - get:

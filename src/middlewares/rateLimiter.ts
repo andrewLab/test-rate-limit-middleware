@@ -1,9 +1,16 @@
-import { Request, Response, NextFunction } from "express";
+import {Request, Response, NextFunction } from "express";
 import redisClient from "../redisClient";
+
+type RouteWeightDefinition = {
+    path: string;
+    private?: boolean;
+    weight?: number;
+};
 
 type RateLimiterOptions = {
   maxByToken: number;
   maxByIp: number;
+  routeWeights?: RouteWeightDefinition[]
 };
 
 const RATE_LIMIT_WINDOW = 60 * 60; // 1 hour
@@ -23,14 +30,21 @@ const rateLimiterMiddleware =
     }
 
     const [value, ttl] = record;
-    if (value <= 1) {
+    if (value <= 0) {
       return res
         .status(429)
         .json(`Too Many Requests. Rate limit will reset in ${ttl} seconds`);
     }
 
-    await redisClient.decr(recordKey);
-    return next();
+    const { routeWeights } = options;
+    if (!routeWeights) {
+        await redisClient.decr(recordKey);
+        return next();
+    }
+
+    const requestWeight = routeWeights.find((rw) => req.path === rw.path)?.weight ?? 1
+    await redisClient.decrby(recordKey, requestWeight)
+    return next()
   };
 
 export default rateLimiterMiddleware;
